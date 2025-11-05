@@ -26,6 +26,19 @@
         #searchResults li {
             cursor: pointer;
         }
+        
+        /* Styles for the toggle switch */
+        .switch-checkbox:checked + .switch-track {
+            background-color: #3b82f6; /* blue-600 */
+        }
+        .switch-checkbox:checked ~ .switch-thumb {
+            transform: translateX(1rem); /* 16px */
+        }
+        
+        /* Stijl voor aggregaatrijen - lichtroze achtergrond */
+        .row-aggregate {
+            background-color: #ffe4e6;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -83,6 +96,17 @@
                     </div>
                 </div>
 
+                <!-- Toon Aggregaten Checkbox -->
+                <!-- DEZE DIV IS VERPLAATST
+                <div class="mb-6" id="aggregatenFilterContainer" style="display: none;">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Aggregaten</label>
+                    <div class="flex items-center">
+                        <input id="showAggregatenSwitch" name="showAggregaten" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="showAggregatenSwitch" class="ml-2 block text-sm text-gray-900">Toon aggregaten</label>
+                    </div>
+                </div>
+                -->
+
                 <!-- Sort Options -->
                 <div class="mb-6" id="sortOptionsContainer" style="display: none;">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Sorteer op</label>
@@ -105,6 +129,24 @@
                     
                     <label class="block text-sm font-medium text-gray-700 mt-4 mb-2">Aantal resultaten</label>
                     <input type="number" id="limitInput" value="10" min="1" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+                </div>
+
+                <!-- HIER IS DE DIV HEENGEPLAATST -->
+                <!-- Toon Aggregaten Checkbox -->
+                <div class="mb-6" id="aggregatenFilterContainer" style="display: none;">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Aggregaten</label>
+                    <!-- GEWIJZIGD naar een switch -->
+                    <div class="flex items-center">
+                        <label for="showAggregatenSwitch" class="flex items-center cursor-pointer">
+                            <div class="relative">
+                                <!-- FOUT GECORRIGEERD: type_checkbox" is nu type="checkbox" -->
+                                <input type="checkbox" id="showAggregatenSwitch" name="showAggregaten" class="sr-only switch-checkbox">
+                                <div class="switch-track block bg-gray-300 w-10 h-6 rounded-full"></div>
+                                <div class="switch-thumb absolute left-1 top-1 bg-white w-4 h-4 rounded-full shadow-md transition-transform"></div>
+                            </div>
+                            <span class="ml-3 text-sm text-gray-900">Toon aggregaten</span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -218,6 +260,7 @@
         const targetGroupSelect = document.getElementById('targetGroupSelect');
         const analysisFilters = document.getElementById('analysisFilters');
         const typeFilterContainer = document.getElementById('typeFilterContainer');
+        const aggregatenFilterContainer = document.getElementById('aggregatenFilterContainer'); // <-- TOEGEVOEGD
         const sortOptionsContainer = document.getElementById('sortOptionsContainer');
         const resultsContainer = document.getElementById('resultsContainer');
         const chartContainer = document.getElementById('chartContainer');
@@ -241,7 +284,13 @@
         cancelChartButton.addEventListener('click', closeChartModal);
         
         function addFilterEventListeners() {
-            [sortMetricSelect, limitInput, ...document.querySelectorAll('input[name="typeFilter"]'), ...document.querySelectorAll('input[name="sortOrder"]')].forEach(el => {
+            [
+                sortMetricSelect, 
+                limitInput, 
+                ...document.querySelectorAll('input[name="typeFilter"]'), 
+                ...document.querySelectorAll('input[name="sortOrder"]'),
+                document.getElementById('showAggregatenSwitch') // <-- DIT BLIJFT WERKEN
+            ].forEach(el => {
                 el.addEventListener('change', () => updateResultsDisplay());
             });
         }
@@ -324,14 +373,23 @@
                     continue; 
                 }
 
-                if (EXCLUDED_TITLES.includes(titleName)) continue;
+                // --- GEWIJZIGD ---
+                // Sla titels niet over, maar markeer ze als aggregaat
+                const isAggregaat = EXCLUDED_TITLES.includes(titleName);
+                // if (EXCLUDED_TITLES.includes(titleName)) continue; // <-- VERWIJDERD
 
                 let type = 'unknown';
                 const lowerTitle = titleName.toLowerCase();
                 if (lowerTitle.includes('print') || lowerTitle.includes('dig. replica')) type = 'print';
                 else if (lowerTitle.includes('digitaal')) type = 'digitaal';
 
-                const titleData = { id: `title-${i}`, titel: titleName, type: type, data: {} };
+                const titleData = { 
+                    id: `title-${i}`, 
+                    titel: titleName, 
+                    type: type, 
+                    data: {},
+                    isAggregaat: isAggregaat // <-- TOEGEVOEGD
+                };
                 let cellIndex = 1;
                 for (let j = 0; j < targetGroups.length; j++) {
                     titleData.data[targetGroups[j]] = {
@@ -364,7 +422,8 @@
 
             // --- Update UI ---
             populateTargetGroups();
-            [targetGroupContainer, typeFilterContainer, sortOptionsContainer].forEach(c => c.style.display = 'block');
+            // --- GEWIJZIGD: aggregatenFilterContainer toegevoegd ---
+            [targetGroupContainer, typeFilterContainer, sortOptionsContainer, aggregatenFilterContainer].forEach(c => c.style.display = 'block');
             addFilterEventListeners();
             targetGroupSelect.addEventListener('change', handleTargetGroupSelection);
             welcomeMessage.style.display = 'none';
@@ -402,11 +461,19 @@
                 const limit = parseInt(document.getElementById('limitInput').value, 10) || 10;
                 const ascending = sortOrder === 'asc';
 
+                // --- GEWIJZIGD: Lees de nieuwe 'aggregaten' switch ---
+                const showAggregaten = document.getElementById('showAggregatenSwitch').checked;
+
                 let filteredTitles = parsedData.titles.filter(title => {
                     const hasData = title.data[selectedGroup]?.[sortMetric] > 0;
                     const matchesType = (selectedType === 'all' || title.type === selectedType);
-                    return hasData && matchesType;
+                    
+                    // Nieuwe filterconditie voor aggregaten
+                    const matchesAggregaatFilter = showAggregaten || !title.isAggregaat;
+                    
+                    return hasData && matchesType && matchesAggregaatFilter;
                 });
+                // --- EINDE WIJZIGING ---
 
                 filteredTitles.sort((a, b) => {
                     const aValue = a.data[selectedGroup][sortMetric];
@@ -421,76 +488,78 @@
         }
 
         function generateResultsHtml(titles, targetGroup) {
-            const tableId = `results-table-${Date.now()}`;
-            const headerHtml = `
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">Resultaten voor: ${targetGroup}</h2>
-                    <button onclick="copyTableToClipboard('${tableId}', this)" class="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300">
-                        Kopieer Tabel
-                    </button>
-                </div>`;
-            
-            let summaryHtml = '';
-            const universumInfo = parsedData.universumData.find(u => u.doelgroep === targetGroup);
-            const dpgReach = parsedData.dpgReachData[targetGroup] || 0;
+        const tableId = `results-table-${Date.now()}`;
+        const headerHtml = `
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-800">Resultaten voor: ${targetGroup}</h2>
+                <button onclick="copyTableToClipboard('${tableId}', this)" class="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300">
+                    Kopieer Tabel
+                </button>
+            </div>`;
+        
+        let summaryHtml = '';
+        const universumInfo = parsedData.universumData.find(u => u.doelgroep === targetGroup);
+        const dpgReach = parsedData.dpgReachData[targetGroup] || 0;
 
-            if (universumInfo) {
-                const share = universumInfo.universum > 0 ? (dpgReach / universumInfo.universum) * 100 : 0;
-                summaryHtml = `
-                    <div class="flex space-x-4 mb-4 p-4 bg-gray-100 rounded-lg text-center">
-                        <div class="flex-1">
-                            <div class="text-sm font-medium text-gray-500">Universum</div>
-                            <div class="text-lg font-bold text-gray-900">${formatNumber(universumInfo.universum)}</div>
-                        </div>
-                        <div class="flex-1">
-                            <div class="text-sm font-medium text-gray-500">DPG Media Bereik</div>
-                            <div class="text-lg font-bold text-gray-900">${formatNumber(dpgReach)}</div>
-                        </div>
-                        <div class="flex-1">
-                            <div class="text-sm font-medium text-gray-500">Share</div>
-                            <div class="text-lg font-bold text-gray-900">${share.toFixed(1)}%</div>
-                        </div>
+        if (universumInfo) {
+            const share = universumInfo.universum > 0 ? (dpgReach / universumInfo.universum) * 100 : 0;
+            summaryHtml = `
+                <div class="flex space-x-4 mb-4 p-4 bg-gray-100 rounded-lg text-center">
+                    <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-500">Doelgroepgrootte</div>
+                        <div class="text-lg font-bold text-gray-900">${formatNumber(universumInfo.universum)}</div>
                     </div>
-                `;
-            }
+                    <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-500">DPG Media Bereik</div>
+                        <div class="text-lg font-bold text-gray-900">${formatNumber(dpgReach)}</div>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-500">Share</div>
+                        <div class="text-lg font-bold text-gray-900">${share.toFixed(1)}%</div>
+                    </div>
+                </div>
+            `;
+        }
 
-            if (!titles || titles.length === 0) {
-                resultsContainer.innerHTML = headerHtml + summaryHtml + `<p>Geen resultaten gevonden voor de geselecteerde filters.</p>`;
-                chartContainer.innerHTML = '';
-                return;
-            }
+        if (!titles || titles.length === 0) {
+            resultsContainer.innerHTML = headerHtml + summaryHtml + `<p>Geen resultaten gevonden voor de geselecteerde filters.</p>`;
+            chartContainer.innerHTML = '';
+            return;
+        }
 
-            let tableHtml = `
-                <div class="overflow-auto rounded-lg border border-gray-200 shadow-md">
-                    <table id="${tableId}" class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50 sticky top-0">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Titel</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bereik#</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gemiddeld Bereik%</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Selectiviteit</th>
-                                <th class="w-12 px-4 py-3"></th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">`;
-            titles.forEach(title => {
-                const data = title.data[targetGroup];
-                tableHtml += `
-                    <tr>
-                        <td class="px-4 py-3 whitespace-normal text-sm font-medium text-gray-900">${title.titel}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${formatNumber(data.bereik)}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${data.gem_bereik_pct.toFixed(1)}%</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${data.selectiviteit}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-center">
-                           <button onclick="removeTitleFromTable('${title.id}')" class="text-gray-400 hover:text-red-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002 2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm2 3a1 1 0 00-1 1v3a1 1 0 102 0v-3a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                </svg>
-                           </button>
-                        </td>
-                    </tr>`;
-            });
-            tableHtml += `</tbody></table></div>`;
+        let tableHtml = `
+            <div class="overflow-auto rounded-lg border border-gray-200 shadow-md">
+                <table id="${tableId}" class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Titel</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bereik#</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gemiddeld Bereik%</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Selectiviteit</th>
+                            <th class="w-12 px-4 py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">`;
+        titles.forEach(title => {
+            const data = title.data[targetGroup];
+            // <CHANGE> Voeg 'row-aggregate' klasse toe voor aggregaatrijnen
+            const rowClass = title.isAggregaat ? 'row-aggregate' : '';
+            tableHtml += `
+                <tr class="${rowClass}">
+                    <td class="px-4 py-3 whitespace-normal text-sm font-medium text-gray-900">${title.titel}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${formatNumber(data.bereik)}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${data.gem_bereik_pct.toFixed(1)}%</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${data.selectiviteit}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-center">
+                       <button onclick="removeTitleFromTable('${title.id}')" class="text-gray-400 hover:text-red-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002 2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm2 3a1 1 0 00-1 1v3a1 1 0 102 0v-3a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                       </button>
+                    </td>
+                </tr>`;
+        });
+        tableHtml += `</tbody></table></div>`;
 
             const searchBarHtml = `
                 <div class="mt-6">
