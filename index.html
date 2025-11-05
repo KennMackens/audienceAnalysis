@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doelgroepanalyse Assistent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <style>
+        .chat-message {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Styles for the modal */
+        #chartOptionsModal {
+            transition: opacity 0.3s ease;
+        }
+        .tab-active {
+            border-color: #3b82f6;
+            color: #2563eb;
+        }
+        #searchResults li {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex">
+         <!-- Left Panel - Controls -->
+        <div class="w-96 bg-white border-r border-gray-200 p-6 flex flex-col">
+            <h1 class="text-2xl font-bold text-gray-900 mb-6">Doelgroepanalyse Assistent</h1>
+            
+             <!-- File Upload -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Upload HTML Bestand
+                </label>
+                <input 
+                    type="file" 
+                    id="fileInput" 
+                    accept=".html"
+                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+            </div>
+
+             <!-- Target Group Selector -->
+            <div class="mb-6" id="targetGroupContainer" style="display: none;">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Kies een doelgroep
+                </label>
+                <select 
+                    id="targetGroupSelect"
+                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                </select>
+            </div>
+
+            <!-- Analysis Filters (Initially visible but controlled by JS) -->
+            <div id="analysisFilters">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Analyse</h2>
+                <!-- Type Filter -->
+                <div class="mb-6" id="typeFilterContainer" style="display: none;">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Filter op Type
+                    </label>
+                    <div class="flex space-x-4">
+                        <div class="flex items-center">
+                            <input id="type-all" name="typeFilter" type="radio" value="all" checked class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            <label for="type-all" class="ml-2 block text-sm text-gray-900">Alles</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="type-print" name="typeFilter" type="radio" value="print" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            <label for="type-print" class="ml-2 block text-sm text-gray-900">Print</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="type-digital" name="typeFilter" type="radio" value="digitaal" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            <label for="type-digital" class="ml-2 block text-sm text-gray-900">Digitaal</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sort Options -->
+                <div class="mb-6" id="sortOptionsContainer" style="display: none;">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Sorteer op</label>
+                    <select id="sortMetricSelect" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <option value="bereik">Bereik</option>
+                        <option value="gem_bereik_pct">Gem. Bereik%</option>
+                        <option value="selectiviteit">Selectiviteit</option>
+                    </select>
+                    
+                    <div class="flex space-x-4 mt-4">
+                        <div class="flex items-center">
+                            <input id="sort-desc" name="sortOrder" type="radio" value="desc" checked class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            <label for="sort-desc" class="ml-2 block text-sm text-gray-900">Hoogste</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="sort-asc" name="sortOrder" type="radio" value="asc" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            <label for="sort-asc" class="ml-2 block text-sm text-gray-900">Laagste</label>
+                        </div>
+                    </div>
+                    
+                    <label class="block text-sm font-medium text-gray-700 mt-4 mb-2">Aantal resultaten</label>
+                    <input type="number" id="limitInput" value="10" min="1" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+                </div>
+            </div>
+
+        </div>
+
+         <!-- Right Panel - Results -->
+        <div class="flex-1 p-6 overflow-y-auto">
+            <div id="welcomeMessage" class="text-center py-20">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">Welkom bij de Doelgroepanalyse Assistent</h3>
+                <p class="mt-1 text-sm text-gray-500">Upload een HTML-bestand om te beginnen</p>
+            </div>
+
+            <div id="tabsContainer" class="hidden">
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                        <button id="tab-analyse" class="tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Analyse</button>
+                        <button id="tab-universum" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Universum</button>
+                    </nav>
+                </div>
+
+                <div id="panel-analyse" class="py-6">
+                    <div id="resultsContainer" class="mb-6"></div>
+                    <div id="chartContainer" class="mt-6 text-center"></div>
+                </div>
+
+                <div id="panel-universum" class="hidden py-6">
+                    <div id="universumContainer" class="mb-6"></div>
+                    <div id="universumChartContainer" class="mt-6 text-center"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Options Modal -->
+    <div id="chartOptionsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center hidden">
+        <div class="relative mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Grafiek Opties</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500 mb-4">
+                        Kies welke waarden u in de grafiek wilt weergeven.
+                    </p>
+                    <div id="metric-options" class="space-y-2 text-left">
+                        <div class="flex items-center">
+                            <input id="metric-bereik" name="metric" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            <label for="metric-bereik" class="ml-2 block text-sm text-gray-900">Bereik</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="metric-gem_bereik_pct" name="metric" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            <label for="metric-gem_bereik_pct" class="ml-2 block text-sm text-gray-900">Gem. Bereik%</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="metric-selectiviteit" name="metric" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            <label for="metric-selectiviteit" class="ml-2 block text-sm text-gray-900">Selectiviteit</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="items-center px-4 py-3 gap-2 flex justify-end">
+                    <button id="cancelChartButton" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400">
+                        Annuleren
+                    </button>
+                    <button id="generateChartButton" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Toon Grafiek
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Global state
+        let parsedData = {
+            titles: [],
+            targetGroups: [],
+            universumData: [],
+            dpgReachData: {}
+        };
+
+        Chart.register(ChartDataLabels);
+        
+        let currentTitlesInTable = [];
+
+        // Titles to exclude
+        const EXCLUDED_TITLES = [
+            'DPG Media Kranten Totaal, gemiddeld bereik editie (print + dig. replica)',
+            'DPG Media Kranten Nationaal, gemiddeld bereik editie (print + dig. replica)',
+            'DPG Media Volkskrant/Trouw/Het Parool, gemiddeld bereik editie (print + dig. replica)',
+            'DPG Media RON + Publishing Partners, maandbereik digitaal',
+            'DPG Media RON, maandbereik digitaal', 'Channel Women', 'DPG Media Run of Nieuws (13), maandbereik digitaal',
+            'NU.nl + ADR (9), maandbereik digitaal', 'NU.nl + AD.nl, maandbereik digitaal', 'ADR (8), maandbereik digitaal',
+            'VTP (3), maandbereik digitaal'
+        ];
+
+        // DOM elements
+        const fileInput = document.getElementById('fileInput');
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        const tabsContainer = document.getElementById('tabsContainer');
+
+        // Tab elements
+        const tabAnalyse = document.getElementById('tab-analyse');
+        const tabUniversum = document.getElementById('tab-universum');
+        const panelAnalyse = document.getElementById('panel-analyse');
+        const panelUniversum = document.getElementById('panel-universum');
+
+        // Panel 1: Analyse
+        const targetGroupContainer = document.getElementById('targetGroupContainer');
+        const targetGroupSelect = document.getElementById('targetGroupSelect');
+        const analysisFilters = document.getElementById('analysisFilters');
+        const typeFilterContainer = document.getElementById('typeFilterContainer');
+        const sortOptionsContainer = document.getElementById('sortOptionsContainer');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const chartContainer = document.getElementById('chartContainer');
+        const sortMetricSelect = document.getElementById('sortMetricSelect');
+        const limitInput = document.getElementById('limitInput');
+
+        // Panel 2: Universum
+        const universumContainer = document.getElementById('universumContainer');
+        const universumChartContainer = document.getElementById('universumChartContainer');
+
+        // Modal
+        const chartOptionsModal = document.getElementById('chartOptionsModal');
+        const generateChartButton = document.getElementById('generateChartButton');
+        const cancelChartButton = document.getElementById('cancelChartButton');
+
+        // Event listeners
+        fileInput.addEventListener('change', handleFileUpload);
+        tabAnalyse.addEventListener('click', () => switchTab('analyse'));
+        tabUniversum.addEventListener('click', () => switchTab('universum'));
+        generateChartButton.addEventListener('click', handleGenerateChartClick);
+        cancelChartButton.addEventListener('click', closeChartModal);
+        
+        function addFilterEventListeners() {
+            [sortMetricSelect, limitInput, ...document.querySelectorAll('input[name="typeFilter"]'), ...document.querySelectorAll('input[name="sortOrder"]')].forEach(el => {
+                el.addEventListener('change', () => updateResultsDisplay());
+            });
+        }
+        
+        function handleTargetGroupSelection() {
+            switchTab('analyse');
+            updateResultsDisplay();
+        }
+
+        function switchTab(activeTab) {
+            if (activeTab === 'analyse') {
+                tabAnalyse.classList.add('tab-active');
+                tabUniversum.classList.remove('tab-active');
+                panelAnalyse.classList.remove('hidden');
+                panelUniversum.classList.add('hidden');
+                analysisFilters.classList.remove('hidden');
+            } else {
+                tabUniversum.classList.add('tab-active');
+                tabAnalyse.classList.remove('tab-active');
+                panelUniversum.classList.remove('hidden');
+                panelAnalyse.classList.add('hidden');
+                analysisFilters.classList.add('hidden');
+            }
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => parseHTML(e.target.result);
+            reader.readAsText(file);
+        }
+
+        function parseHTML(htmlContent) {
+            resultsContainer.innerHTML = '';
+            chartContainer.innerHTML = '';
+            universumContainer.innerHTML = '';
+            universumChartContainer.innerHTML = '';
+            welcomeMessage.style.display = 'block';
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            const tables = doc.querySelectorAll('table');
+
+            if (tables.length < 2) {
+                alert('Ongeldig HTML-bestand. Verwachte tabellen niet gevonden.');
+                return;
+            }
+
+            // --- Parse Main Data Table ---
+            const mainTable = tables[2];
+            const rows = mainTable.querySelectorAll('tr');
+            const headerRow1 = rows[0].querySelectorAll('td');
+            
+            const targetGroups = [];
+            for (let i = 1; i < headerRow1.length; i++) {
+                if (parseInt(headerRow1[i].getAttribute('colspan') || '1') === 3) {
+                    targetGroups.push(headerRow1[i].textContent.trim());
+                }
+            }
+            parsedData.targetGroups = targetGroups;
+
+            const titles = [];
+            const dpgReachData = {};
+            for (let i = 2; i < rows.length; i++) {
+                const cells = rows[i].querySelectorAll('td');
+                if (cells.length === 0) continue;
+
+                const titleName = cells[0].textContent.trim();
+
+                if (titleName === 'DPG Media, merkbereik publisher') {
+                    let cellIndex = 1;
+                    for (let j = 0; j < targetGroups.length; j++) {
+                        dpgReachData[targetGroups[j]] = parseNumber(cells[cellIndex]?.textContent);
+                        cellIndex += 3;
+                    }
+                    continue; 
+                }
+
+                if (EXCLUDED_TITLES.includes(titleName)) continue;
+
+                let type = 'unknown';
+                const lowerTitle = titleName.toLowerCase();
+                if (lowerTitle.includes('print') || lowerTitle.includes('dig. replica')) type = 'print';
+                else if (lowerTitle.includes('digitaal')) type = 'digitaal';
+
+                const titleData = { id: `title-${i}`, titel: titleName, type: type, data: {} };
+                let cellIndex = 1;
+                for (let j = 0; j < targetGroups.length; j++) {
+                    titleData.data[targetGroups[j]] = {
+                        bereik: parseNumber(cells[cellIndex]?.textContent),
+                        gem_bereik_pct: parseNumber(cells[cellIndex + 1]?.textContent),
+                        selectiviteit: parseNumber(cells[cellIndex + 2]?.textContent)
+                    };
+                    cellIndex += 3;
+                }
+                titles.push(titleData);
+            }
+            parsedData.titles = titles;
+            parsedData.dpgReachData = dpgReachData;
+
+            // --- Parse Universum Table ---
+            const universumTable = tables[tables.length - 1];
+            const universumRows = universumTable.querySelectorAll('tr');
+            const universumData = [];
+            for (let i = 2; i < universumRows.length; i++) {
+                const cells = universumRows[i].querySelectorAll('td');
+                if (cells.length >= 3) {
+                    universumData.push({
+                        doelgroep: cells[0].textContent.trim(),
+                        steekproef: parseNumber(cells[1].textContent),
+                        universum: parseNumber(cells[2].textContent),
+                    });
+                }
+            }
+            parsedData.universumData = universumData;
+
+            // --- Update UI ---
+            populateTargetGroups();
+            [targetGroupContainer, typeFilterContainer, sortOptionsContainer].forEach(c => c.style.display = 'block');
+            addFilterEventListeners();
+            targetGroupSelect.addEventListener('change', handleTargetGroupSelection);
+            welcomeMessage.style.display = 'none';
+            tabsContainer.classList.remove('hidden');
+            switchTab('universum');
+            displayUniversumData();
+        }
+
+        function parseNumber(text) {
+            if (!text) return 0;
+            return parseFloat(text.replace(/\./g, '').replace(',', '.')) || 0;
+        }
+
+        function populateTargetGroups() {
+            targetGroupSelect.innerHTML = '<option value="" disabled selected>Selecteer een groep</option>';
+            parsedData.targetGroups.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group;
+                option.textContent = group;
+                targetGroupSelect.appendChild(option);
+            });
+        }
+        
+        function updateResultsDisplay(isAddingOrRemoving = false) {
+            const selectedGroup = targetGroupSelect.value;
+            if (!selectedGroup) {
+                resultsContainer.innerHTML = '<p class="text-gray-500">Selecteer een doelgroep om data te zien.</p>';
+                return;
+            }
+
+            if (!isAddingOrRemoving) {
+                const selectedType = document.querySelector('input[name="typeFilter"]:checked').value;
+                const sortMetric = document.getElementById('sortMetricSelect').value;
+                const sortOrder = document.querySelector('input[name="sortOrder"]:checked').value;
+                const limit = parseInt(document.getElementById('limitInput').value, 10) || 10;
+                const ascending = sortOrder === 'asc';
+
+                let filteredTitles = parsedData.titles.filter(title => {
+                    const hasData = title.data[selectedGroup]?.[sortMetric] > 0;
+                    const matchesType = (selectedType === 'all' || title.type === selectedType);
+                    return hasData && matchesType;
+                });
+
+                filteredTitles.sort((a, b) => {
+                    const aValue = a.data[selectedGroup][sortMetric];
+                    const bValue = b.data[selectedGroup][sortMetric];
+                    return ascending ? aValue - bValue : bValue - aValue;
+                });
+                
+                currentTitlesInTable = filteredTitles.slice(0, limit);
+            }
+            
+            generateResultsHtml(currentTitlesInTable, selectedGroup);
+        }
+
+        function generateResultsHtml(titles, targetGroup) {
+            const tableId = `results-table-${Date.now()}`;
+            const headerHtml = `
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">Resultaten voor: ${targetGroup}</h2>
+                    <button onclick="copyTableToClipboard('${tableId}', this)" class="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300">
+                        Kopieer Tabel
+                    </button>
+                </div>`;
+            
+            let summaryHtml = '';
+            const universumInfo = parsedData.universumData.find(u => u.doelgroep === targetGroup);
+            const dpgReach = parsedData.dpgReachData[targetGroup] || 0;
+
+            if (universumInfo) {
+                const share = universumInfo.universum > 0 ? (dpgReach / universumInfo.universum) * 100 : 0;
+                summaryHtml = `
+                    <div class="flex space-x-4 mb-4 p-4 bg-gray-100 rounded-lg text-center">
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-gray-500">Universum</div>
+                            <div class="text-lg font-bold text-gray-900">${formatNumber(universumInfo.universum)}</div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-gray-500">DPG Media Bereik</div>
+                            <div class="text-lg font-bold text-gray-900">${formatNumber(dpgReach)}</div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-gray-500">Share</div>
+                            <div class="text-lg font-bold text-gray-900">${share.toFixed(1)}%</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (!titles || titles.length === 0) {
+                resultsContainer.innerHTML = headerHtml + summaryHtml + `<p>Geen resultaten gevonden voor de geselecteerde filters.</p>`;
+                chartContainer.innerHTML = '';
+                return;
+            }
+
+            let tableHtml = `
+                <div class="overflow-auto rounded-lg border border-gray-200 shadow-md">
+                    <table id="${tableId}" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Titel</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bereik</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gem. Bereik%</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Selectiviteit</th>
+                                <th class="w-12 px-4 py-3"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">`;
+            titles.forEach(title => {
+                const data = title.data[targetGroup];
+                tableHtml += `
+                    <tr>
+                        <td class="px-4 py-3 whitespace-normal text-sm font-medium text-gray-900">${title.titel}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${formatNumber(data.bereik)}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${data.gem_bereik_pct.toFixed(1)}%</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${data.selectiviteit}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-center">
+                           <button onclick="removeTitleFromTable('${title.id}')" class="text-gray-400 hover:text-red-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm2 3a1 1 0 00-1 1v3a1 1 0 102 0v-3a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                           </button>
+                        </td>
+                    </tr>`;
+            });
+            tableHtml += `</tbody></table></div>`;
+
+            const searchBarHtml = `
+                <div class="mt-6">
+                    <label for="tableSearchInput" class="block text-sm font-medium text-gray-700 mb-2">Voeg titel toe als referentie</label>
+                    <div class="relative">
+                        <input type="text" id="tableSearchInput" placeholder="Zoek een titel..." class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <ul id="tableSearchResults" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-60 overflow-auto hidden"></ul>
+                    </div>
+                </div>`;
+
+            const chartButtonHtml = `<div class="mt-4"><button onclick="openChartModal()" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">📊 Genereer Grafiek</button></div>`;
+
+            resultsContainer.innerHTML = headerHtml + summaryHtml + tableHtml + searchBarHtml + chartButtonHtml;
+
+            // Re-attach listeners for the new search bar
+            const tableSearchInput = document.getElementById('tableSearchInput');
+            tableSearchInput.addEventListener('input', handleSearchInput);
+            tableSearchInput.addEventListener('blur', () => setTimeout(() => document.getElementById('tableSearchResults').classList.add('hidden'), 200));
+        }
+        
+        function formatNumber(num) {
+            return num.toLocaleString('nl-NL');
+        }
+
+        function displayUniversumData() {
+            if (!parsedData.universumData || parsedData.universumData.length === 0) {
+                universumContainer.innerHTML = '<p class="text-gray-500">Geen universum data gevonden.</p>';
+                return;
+            }
+
+            const tableId = `universum-table-${Date.now()}`;
+            let headerHtml = `
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">Universum Overzicht</h2>
+                    <button onclick="copyTableToClipboard('${tableId}', this)" class="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300">
+                        Kopieer Tabel
+                    </button>
+                </div>`;
+            
+            let tableHtml = `
+                <div class="overflow-auto rounded-lg border border-gray-200 shadow-md">
+                    <table id="${tableId}" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doelgroep</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Universum</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DPG Media Bereik</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Share</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">`;
+
+            parsedData.universumData.forEach(item => {
+                const dpgReach = parsedData.dpgReachData[item.doelgroep] || 0;
+                const share = item.universum > 0 ? (dpgReach / item.universum) * 100 : 0;
+                tableHtml += `
+                    <tr>
+                        <td class="px-4 py-3 whitespace-normal text-sm font-medium text-gray-900">${item.doelgroep}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${formatNumber(item.universum)}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${formatNumber(dpgReach)}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${share.toFixed(1)}%</td>
+                    </tr>`;
+            });
+
+            tableHtml += `</tbody></table></div>`;
+            const chartButtonHtml = `<div class="mt-4"><button onclick="generateUniversumChart()" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">📊 Genereer Grafiek</button></div>`;
+            
+            universumContainer.innerHTML = headerHtml + tableHtml + chartButtonHtml;
+        }
+
+        function generateUniversumChart() {
+            universumChartContainer.innerHTML = '';
+
+            const chartWrapper = document.createElement('div');
+            chartWrapper.className = 'relative';
+            chartWrapper.style.height = '50vh';
+            chartWrapper.style.maxHeight = '600px';
+
+            const canvas = document.createElement('canvas');
+            const canvasId = 'universumChart';
+            canvas.id = canvasId;
+            
+            chartWrapper.appendChild(canvas);
+            universumChartContainer.appendChild(chartWrapper);
+
+            const labels = parsedData.universumData.map(d => d.doelgroep);
+
+            new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'DPG Media Bereik',
+                            data: parsedData.universumData.map(d => parsedData.dpgReachData[d.doelgroep] || 0),
+                            backgroundColor: 'rgba(209, 52, 121, 0.8)',
+                            borderColor: 'rgba(209, 52, 121, 1)',
+                            borderWidth: 1
+                        },
+                         {
+                            label: 'Resterend Universum',
+                            data: parsedData.universumData.map(d => {
+                                const reach = parsedData.dpgReachData[d.doelgroep] || 0;
+                                return d.universum > reach ? d.universum - reach : 0;
+                            }),
+                            backgroundColor: 'rgba(200, 200, 200, 0.8)',
+                            borderColor: 'rgba(200, 200, 200, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    events: [],
+                    plugins: {
+                        title: { display: true, text: 'DPG Media Aandeel in Universum', font: { size: 16, weight: 'bold' }},
+                        legend: { display: true },
+                        tooltip: {
+                            enabled: false
+                        },
+                        datalabels: {
+                            display: true, color: 'white', anchor: 'center', align: 'center',
+                            formatter: (value, context) => {
+                                if (context.dataset.label === 'DPG Media Bereik') {
+                                    return value > 0 ? formatNumber(value) : '';
+                                }
+                                return '';
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            title: { display: true, text: 'Aantal Personen' }
+                        },
+                        y: {
+                            stacked: true
+                        }
+                    }
+                }
+            });
+
+            const copyBtn = document.createElement('button');
+            copyBtn.textContent = 'Kopieer Grafiek';
+            copyBtn.className = 'mt-4 px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300';
+            copyBtn.onclick = () => copyChartToClipboard(canvasId, copyBtn);
+            universumChartContainer.appendChild(copyBtn);
+        }
+        
+        function openChartModal() {
+            currentTitlesInTable = currentTitlesInTable.filter(t => t);
+            if (!currentTitlesInTable || currentTitlesInTable.length === 0) {
+                 alert('Geen data in de tabel om een grafiek van te maken.');
+                 return;
+            };
+
+            const sortMetric = document.getElementById('sortMetricSelect').value;
+            document.getElementById('metric-bereik').checked = sortMetric === 'bereik';
+            document.getElementById('metric-gem_bereik_pct').checked = sortMetric === 'gem_bereik_pct';
+            document.getElementById('metric-selectiviteit').checked = sortMetric === 'selectiviteit';
+            chartOptionsModal.classList.remove('hidden');
+        }
+
+        function closeChartModal() {
+            chartOptionsModal.classList.add('hidden');
+        }
+        
+        function handleGenerateChartClick() {
+            const selectedMetrics = [];
+            if (document.getElementById('metric-bereik').checked) selectedMetrics.push('bereik');
+            if (document.getElementById('metric-gem_bereik_pct').checked) selectedMetrics.push('gem_bereik_pct');
+            if (document.getElementById('metric-selectiviteit').checked) selectedMetrics.push('selectiviteit');
+
+            const chartData = {
+                titles: currentTitlesInTable.filter(t => t),
+                targetGroup: targetGroupSelect.value,
+                metric: sortMetricSelect.value,
+                typeFilter: document.querySelector('input[name="typeFilter"]:checked').value
+            }
+
+            if (selectedMetrics.length > 0 && chartData.titles.length > 0) {
+                generateChart(chartData, selectedMetrics);
+                closeChartModal();
+            } else {
+                alert('Selecteer ten minste één waarde en zorg dat er data in de tabel staat.');
+            }
+        }
+
+        function copyTableToClipboard(tableId, buttonElement) {
+            const table = document.getElementById(tableId);
+            if (!table) return;
+            const originalText = buttonElement.textContent;
+            navigator.clipboard.write([new ClipboardItem({'text/html': new Blob([table.outerHTML], { type: 'text/html' })})])
+                .then(() => {
+                    buttonElement.textContent = 'Gekopieerd!';
+                    setTimeout(() => { buttonElement.textContent = originalText; }, 2000);
+                }).catch(err => console.error('Failed to copy table: ', err));
+        }
+
+        function copyChartToClipboard(canvasId, buttonElement) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const originalText = buttonElement.textContent;
+            canvas.toBlob(blob => {
+                navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+                    .then(() => {
+                        buttonElement.textContent = 'Gekopieerd!';
+                        setTimeout(() => { buttonElement.textContent = originalText; }, 2000);
+                    });
+            }, 'image/png');
+        }
+
+        function generateChart(chartData, selectedMetrics) {
+            chartContainer.innerHTML = '';
+
+            const chartWrapper = document.createElement('div');
+            chartWrapper.className = 'relative';
+            chartWrapper.style.height = '50vh';
+            chartWrapper.style.maxHeight = '600px';
+
+            const canvas = document.createElement('canvas');
+            const canvasId = 'dataChart';
+            canvas.id = canvasId;
+            
+            chartWrapper.appendChild(canvas);
+            chartContainer.appendChild(chartWrapper);
+
+            const labels = chartData.titles.map(t => t.titel);
+            const metricColors = {
+                'bereik': { bg: 'rgba(209, 52, 121, 0.8)', border: 'rgba(209, 52, 121, 1)'},
+                'gem_bereik_pct': { bg: 'transparent', border: '#fabb22' },
+                'selectiviteit': { bg: 'transparent', border: 'rgba(59, 130, 246, 1)' }
+            };
+            const metricLabels = { 'bereik': 'Bereik', 'gem_bereik_pct': 'Gem. Bereik%', 'selectiviteit': 'Selectiviteit' };
+
+            const datasets = selectedMetrics.map(metric => {
+                const isLine = metric === 'selectiviteit' || metric === 'gem_bereik_pct';
+                return {
+                    type: isLine ? 'line' : 'bar',
+                    label: metricLabels[metric],
+                    data: chartData.titles.map(t => t.data[chartData.targetGroup][metric]),
+                    backgroundColor: metricColors[metric].bg,
+                    borderColor: metricColors[metric].border,
+                    borderWidth: 2,
+                    pointBackgroundColor: isLine ? metricColors[metric].border : undefined,
+                    yAxisID: metric === 'bereik' ? 'yBereik' : 'yOther',
+                    fill: !isLine,
+                }
+            });
+
+            const chartTitle = `Resultaten voor ${chartData.targetGroup}`;
+            const chartScales = { x: { ticks: { callback: function(value) { const label = this.getLabelForValue(value); return label.length > 30 ? label.substring(0, 30) + '...' : label; } } } };
+            
+            const hasBereik = selectedMetrics.includes('bereik');
+            const hasOtherMetrics = selectedMetrics.some(m => m === 'gem_bereik_pct' || m === 'selectiviteit');
+            
+            if (hasBereik) {
+                chartScales.yBereik = { type: 'linear', position: 'left', beginAtZero: true, title: { display: true, text: 'Bereik' }, };
+            }
+            if (hasOtherMetrics) {
+                chartScales.yOther = { type: 'linear', position: 'right', beginAtZero: true, title: { display: true, text: 'Gem. Bereik% / Selectiviteit' }, grid: { drawOnChartArea: false } };
+            }
+            
+            if (hasBereik && !hasOtherMetrics) {
+                datasets.forEach(d => d.yAxisID = 'y');
+                chartScales.y = chartScales.yBereik;
+                delete chartScales.yBereik;
+            } else if (!hasBereik && hasOtherMetrics) {
+                datasets.forEach(d => d.yAxisID = 'y');
+                chartScales.y = chartScales.yOther;
+                chartScales.y.position = 'left';
+                chartScales.y.grid.drawOnChartArea = true;
+                delete chartScales.yOther;
+            }
+
+            new Chart(canvas, {
+                type: 'bar', 
+                data: { labels: labels, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    events: [],
+                    plugins: {
+                        title: { display: true, text: chartTitle, font: { size: 16, weight: 'bold' } },
+                        legend: { display: datasets.length > 1 },
+                        tooltip: { enabled: false },
+                        datalabels: {
+                            display: true,
+                            color: context => context.dataset.type === 'line' ? context.dataset.borderColor : 'white',
+                            align: context => context.dataset.type === 'line' ? 'end' : 'center',
+                            anchor: context => context.dataset.type === 'line' ? 'end' : 'center',
+                            formatter: (value, context) => {
+                                if (context.dataset.label === 'Bereik') return formatNumber(value);
+                                if (context.dataset.label === 'Gem. Bereik%') return value.toFixed(1) + '%';
+                                return value;
+                            }
+                        }
+                    },
+                    scales: chartScales
+                }
+            });
+
+            const copyBtn = document.createElement('button');
+            copyBtn.textContent = 'Kopieer Grafiek';
+            copyBtn.className = 'mt-4 px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300';
+            copyBtn.onclick = () => copyChartToClipboard(canvasId, copyBtn);
+            chartContainer.appendChild(copyBtn);
+            
+            canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function handleSearchInput(e) {
+            const searchResultsList = document.getElementById('tableSearchResults');
+            const query = e.target.value.toLowerCase();
+            if (query.length < 2) {
+                searchResultsList.classList.add('hidden');
+                return;
+            }
+            const filtered = parsedData.titles.filter(title => title.titel.toLowerCase().includes(query));
+            
+            searchResultsList.innerHTML = '';
+            if (filtered.length > 0) {
+                 filtered.slice(0, 5).forEach(title => {
+                    const li = document.createElement('li');
+                    li.textContent = title.titel;
+                    li.className = 'p-2 hover:bg-gray-100';
+                    li.onmousedown = () => addTitleToTable(title);
+                    searchResultsList.appendChild(li);
+                });
+                searchResultsList.classList.remove('hidden');
+            } else {
+                searchResultsList.classList.add('hidden');
+            }
+        }
+
+        function addTitleToTable(titleToAdd) {
+            if (!currentTitlesInTable.find(t => t.id === titleToAdd.id)) {
+                currentTitlesInTable.push(titleToAdd);
+                updateResultsDisplay(true);
+            }
+            document.getElementById('tableSearchInput').value = '';
+            document.getElementById('tableSearchResults').classList.add('hidden');
+        }
+
+        function removeTitleFromTable(titleId) {
+            currentTitlesInTable = currentTitlesInTable.filter(t => t.id !== titleId);
+            updateResultsDisplay(true);
+        }
+
+    </script>
+</body>
+</html>
+
