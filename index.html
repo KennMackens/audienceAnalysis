@@ -15,10 +15,6 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        /* Styles for the modal */
-        #chartOptionsModal {
-            transition: opacity 0.3s ease;
-        }
         .tab-active {
             border-color: #3b82f6;
             color: #2563eb;
@@ -39,12 +35,28 @@
         .row-aggregate {
             background-color: #ffe4e6;
         }
+
+        /* Added styles for collapsible sections */
+        .collapsible-header {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+        .collapsible-header:hover {
+            background-color: #f9fafb;
+        }
+        .chevron {
+            transition: transform 0.2s;
+        }
+        .chevron.open {
+            transform: rotate(180deg);
+        }
     </style>
 </head>
 <body class="bg-gray-50">
     <div class="min-h-screen flex">
          <!-- Left Panel - Controls -->
-        <div class="w-96 bg-white border-r border-gray-200 p-6 flex flex-col">
+        <div class="w-96 bg-white border-r border-gray-200 p-6 flex flex-col overflow-y-auto">
             <h1 class="text-2xl font-bold text-gray-900 mb-6">Doelgroepanalyse Assistent</h1>
             
              <!-- File Upload -->
@@ -72,80 +84,129 @@
                 </select>
             </div>
 
-            <!-- Analysis Filters (Initially visible but controlled by JS) -->
+            <!-- Redesigned Analysis Filters with collapsible sections -->
             <div id="analysisFilters">
-                <h2 class="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Analyse</h2>
-                <!-- Type Filter -->
-                <div class="mb-6" id="typeFilterContainer" style="display: none;">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Filter op Type
-                    </label>
-                    <div class="flex space-x-4">
-                        <div class="flex items-center">
-                            <input id="type-all" name="typeFilter" type="radio" value="all" checked class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                            <label for="type-all" class="ml-2 block text-sm text-gray-900">Alles</label>
-                        </div>
-                        <div class="flex items-center">
-                            <input id="type-print" name="typeFilter" type="radio" value="print" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                            <label for="type-print" class="ml-2 block text-sm text-gray-900">Print</label>
-                        </div>
-                        <div class="flex items-center">
-                            <input id="type-digital" name="typeFilter" type="radio" value="digitaal" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                            <label for="type-digital" class="ml-2 block text-sm text-gray-900">Digitaal</label>
+                <h2 class="text-lg font-semibold text-gray-800 mb-3">Analyse</h2>
+                
+                <!-- Type Filter - Collapsible -->
+                <div class="mb-4 border border-gray-200 rounded-lg" id="typeFilterContainer" style="display: none;">
+                    <div class="collapsible-header flex justify-between items-center px-4 py-3" onclick="toggleSection('typeFilterContent')">
+                        <span class="text-sm font-medium text-gray-700">Filter op Type</span>
+                        <svg class="chevron w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                    <div id="typeFilterContent" class="px-4 pb-3">
+                        <div class="flex space-x-4">
+                            <div class="flex items-center">
+                                <input id="type-all" name="typeFilter" type="radio" value="all" checked class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <label for="type-all" class="ml-2 block text-sm text-gray-900">Alles</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="type-print" name="typeFilter" type="radio" value="print" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <label for="type-print" class="ml-2 block text-sm text-gray-900">Print</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="type-digital" name="typeFilter" type="radio" value="digitaal" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <label for="type-digital" class="ml-2 block text-sm text-gray-900">Digitaal</label>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Toon Aggregaten Checkbox -->
-                <!-- DEZE DIV IS VERPLAATST
-                <div class="mb-6" id="aggregatenFilterContainer" style="display: none;">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Aggregaten</label>
-                    <div class="flex items-center">
-                        <input id="showAggregatenSwitch" name="showAggregaten" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                        <label for="showAggregatenSwitch" class="ml-2 block text-sm text-gray-900">Toon aggregaten</label>
+                <!-- Sort Options - Collapsible -->
+                <div class="mb-4 border border-gray-200 rounded-lg" id="sortOptionsContainer" style="display: none;">
+                    <div class="collapsible-header flex justify-between items-center px-4 py-3" onclick="toggleSection('sortOptionsContent')">
+                        <span class="text-sm font-medium text-gray-700">Sorteer en Filter</span>
+                        <svg class="chevron w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                    <div id="sortOptionsContent" class="px-4 pb-3 space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Sorteer op</label>
+                            <select id="sortMetricSelect" class="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <option value="bereik">Bereik#</option>
+                                <option value="gem_bereik_pct">Gemiddeld bereik%</option>
+                                <option value="selectiviteit">Selectiviteit</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex space-x-4">
+                            <div class="flex items-center">
+                                <input id="sort-desc" name="sortOrder" type="radio" value="desc" checked class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <label for="sort-desc" class="ml-2 block text-sm text-gray-900">Hoogste</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="sort-asc" name="sortOrder" type="radio" value="asc" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <label for="sort-asc" class="ml-2 block text-sm text-gray-900">Laagste</label>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Aantal resultaten</label>
+                            <input type="number" id="limitInput" value="10" min="1" class="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+                        </div>
                     </div>
                 </div>
-                -->
 
-                <!-- Sort Options -->
-                <div class="mb-6" id="sortOptionsContainer" style="display: none;">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Sorteer op</label>
-                    <select id="sortMetricSelect" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                        <option value="bereik">Bereik#</option>
-                        <option value="gem_bereik_pct">Gemiddeld bereik%</option>
-                        <option value="selectiviteit">Selectiviteit</option>
-                    </select>
-                    
-                    <div class="flex space-x-4 mt-4">
-                        <div class="flex items-center">
-                            <input id="sort-desc" name="sortOrder" type="radio" value="desc" checked class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                            <label for="sort-desc" class="ml-2 block text-sm text-gray-900">Hoogste</label>
-                        </div>
-                        <div class="flex items-center">
-                            <input id="sort-asc" name="sortOrder" type="radio" value="asc" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                            <label for="sort-asc" class="ml-2 block text-sm text-gray-900">Laagste</label>
-                        </div>
-                    </div>
-                    
-                    <label class="block text-sm font-medium text-gray-700 mt-4 mb-2">Aantal resultaten</label>
-                    <input type="number" id="limitInput" value="10" min="1" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
-                </div>
-
-                <!-- HIER IS DE DIV HEENGEPLAATST -->
-                <!-- Toon Aggregaten Checkbox -->
-                <div class="mb-6" id="aggregatenFilterContainer" style="display: none;">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Aggregaten</label>
-                    <!-- GEWIJZIGD naar een switch -->
-                    <div class="flex items-center">
+                <!-- Aggregaten Toggle - Compact -->
+                <div class="mb-4 border border-gray-200 rounded-lg px-4 py-3" id="aggregatenFilterContainer" style="display: none;">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-700">Toon aggregaten</span>
                         <label for="showAggregatenSwitch" class="flex items-center cursor-pointer">
                             <div class="relative">
-                                <!-- FOUT GECORRIGEERD: type_checkbox" is nu type="checkbox" -->
                                 <input type="checkbox" id="showAggregatenSwitch" name="showAggregaten" class="sr-only switch-checkbox">
                                 <div class="switch-track block bg-gray-300 w-10 h-6 rounded-full"></div>
                                 <div class="switch-thumb absolute left-1 top-1 bg-white w-4 h-4 rounded-full shadow-md transition-transform"></div>
                             </div>
-                            <span class="ml-3 text-sm text-gray-900">Toon aggregaten</span>
                         </label>
+                    </div>
+                </div>
+
+                <!-- Chart Options - Collapsible -->
+                <div class="mb-4 border border-gray-200 rounded-lg" id="chartOptionsContainer" style="display: none;">
+                    <div class="collapsible-header flex justify-between items-center px-4 py-3" onclick="toggleSection('chartOptionsContent')">
+                        <span class="text-sm font-medium text-gray-700">Grafiek Opties</span>
+                        <svg class="chevron w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                    <div id="chartOptionsContent" class="px-4 pb-3">
+                        <p class="text-xs text-gray-500 mb-2">Kies welke waarden u in de grafiek wilt weergeven.</p>
+                        <div id="metric-options" class="space-y-2">
+                            <div class="flex items-center">
+                                <input id="metric-bereik" name="metric" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="metric-bereik" class="ml-2 block text-sm text-gray-900">Bereik#</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="metric-gem_bereik_pct" name="metric" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="metric-gem_bereik_pct" class="ml-2 block text-sm text-gray-900">Gemiddeld bereik%</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="metric-selectiviteit" name="metric" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="metric-selectiviteit" class="ml-2 block text-sm text-gray-900">Selectiviteit</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Redesigned Doelgroepgrootte Filters with collapsible section -->
+            <div id="doelgroepgrootteFilters" style="display: none;">
+                <h2 class="text-lg font-semibold text-gray-800 mb-3">Doelgroepgrootte</h2>
+                
+                <div class="mb-4 border border-gray-200 rounded-lg">
+                    <div class="collapsible-header flex justify-between items-center px-4 py-3" onclick="toggleSection('doelgroepCheckboxesWrapper')">
+                        <span class="text-sm font-medium text-gray-700">Filter doelgroepen</span>
+                        <svg class="chevron w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                    <div id="doelgroepCheckboxesWrapper" class="px-4 pb-3">
+                        <div id="doelgroepCheckboxes" class="space-y-2 max-h-80 overflow-y-auto">
+                            <!-- Checkboxes will be dynamically generated here -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -165,60 +226,65 @@
             <div id="tabsContainer" class="hidden">
                 <div class="border-b border-gray-200">
                     <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                        <button id="tab-analyse" class="tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Analyse</button>
+                        <!-- Added new Bron & Uitleg tab and reordered tabs -->
+                        <button id="tab-info" class="tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Bron & Uitleg</button>
                         <button id="tab-universum" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Doelgroepgrootte</button>
+                        <button id="tab-analyse" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Analyse</button>
                     </nav>
                 </div>
 
-                <div id="panel-analyse" class="py-6">
+                <!-- Added new Bron & Uitleg panel -->
+                <div id="panel-info" class="py-6">
+                    <div class="space-y-6">
+                        <!-- Klant Card -->
+                        <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Klant</h3>
+                            <p class="text-gray-700">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                        </div>
+
+                        <!-- Bron Card -->
+                        <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Bron</h3>
+                            <p class="text-gray-700">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p>
+                        </div>
+
+                        <!-- Uitleg Textarea -->
+                        <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Uitleg</h3>
+                            <textarea 
+                                id="explanationText" 
+                                rows="12" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                                placeholder="Voer hier uw uitleg in..."
+                            >Lorem Ipsum: De Standaard Tekst
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+
+Waarom Lorem Ipsum?
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+
+Belangrijke Overwegingen
+Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.
+
+Conclusie
+Totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Removed chart button, charts now always shown -->
+                <div id="panel-analyse" class="hidden py-6">
                     <div id="resultsContainer" class="mb-6"></div>
-                    <div id="chartContainer" class="mt-6 text-center"></div>
+                    <div id="chartContainer" class="mt-6"></div>
                 </div>
 
                 <div id="panel-universum" class="hidden py-6">
                     <div id="universumContainer" class="mb-6"></div>
-                    <div id="universumChartContainer" class="mt-6 text-center"></div>
+                    <div id="universumChartContainer" class="mt-6"></div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Chart Options Modal -->
-    <div id="chartOptionsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center hidden">
-        <div class="relative mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
-            <div class="mt-3 text-center">
-                <h3 class="text-lg leading-6 font-medium text-gray-900">Grafiek Opties</h3>
-                <div class="mt-2 px-7 py-3">
-                    <p class="text-sm text-gray-500 mb-4">
-                        Kies welke waarden u in de grafiek wilt weergeven.
-                    </p>
-                    <div id="metric-options" class="space-y-2 text-left">
-                        <div class="flex items-center">
-                            <input id="metric-bereik" name="metric" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                            <label for="metric-bereik" class="ml-2 block text-sm text-gray-900">Bereik#</label>
-                        </div>
-                        <div class="flex items-center">
-                            <input id="metric-gem_bereik_pct" name="metric" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                            <label for="metric-gem_bereik_pct" class="ml-2 block text-sm text-gray-900">Gemiddeld bereik%</label>
-                        </div>
-                        <div class="flex items-center">
-                            <input id="metric-selectiviteit" name="metric" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                            <label for="metric-selectiviteit" class="ml-2 block text-sm text-gray-900">Selectiviteit</label>
-                        </div>
-                    </div>
-                </div>
-                <div class="items-center px-4 py-3 gap-2 flex justify-end">
-                    <button id="cancelChartButton" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400">
-                        Annuleren
-                    </button>
-                    <button id="generateChartButton" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                        Toon Grafiek
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
 
     <script>
         // Global state
@@ -232,6 +298,9 @@
         Chart.register(ChartDataLabels);
         
         let currentTitlesInTable = [];
+        let currentAnalyseChart = null;
+        let currentUniversumChart = null;
+        let selectedDoelgroepen = new Set();
 
         // Titles to exclude
         const EXCLUDED_TITLES = [
@@ -250,8 +319,10 @@
         const tabsContainer = document.getElementById('tabsContainer');
 
         // Tab elements
+        const tabInfo = document.getElementById('tab-info');
         const tabAnalyse = document.getElementById('tab-analyse');
         const tabUniversum = document.getElementById('tab-universum');
+        const panelInfo = document.getElementById('panel-info');
         const panelAnalyse = document.getElementById('panel-analyse');
         const panelUniversum = document.getElementById('panel-universum');
 
@@ -260,8 +331,9 @@
         const targetGroupSelect = document.getElementById('targetGroupSelect');
         const analysisFilters = document.getElementById('analysisFilters');
         const typeFilterContainer = document.getElementById('typeFilterContainer');
-        const aggregatenFilterContainer = document.getElementById('aggregatenFilterContainer'); // <-- TOEGEVOEGD
+        const aggregatenFilterContainer = document.getElementById('aggregatenFilterContainer');
         const sortOptionsContainer = document.getElementById('sortOptionsContainer');
+        const chartOptionsContainer = document.getElementById('chartOptionsContainer');
         const resultsContainer = document.getElementById('resultsContainer');
         const chartContainer = document.getElementById('chartContainer');
         const sortMetricSelect = document.getElementById('sortMetricSelect');
@@ -270,18 +342,38 @@
         // Panel 2: Universum
         const universumContainer = document.getElementById('universumContainer');
         const universumChartContainer = document.getElementById('universumChartContainer');
+        const doelgroepgrootteFilters = document.getElementById('doelgroepgrootteFilters');
+        const doelgroepCheckboxes = document.getElementById('doelgroepCheckboxes');
 
-        // Modal
-        const chartOptionsModal = document.getElementById('chartOptionsModal');
-        const generateChartButton = document.getElementById('generateChartButton');
-        const cancelChartButton = document.getElementById('cancelChartButton');
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const header = section.previousElementSibling;
+            const chevron = header.querySelector('.chevron');
+            
+            if (section.style.display === 'none' || section.style.display === '') {
+                section.style.display = 'block';
+                chevron.classList.add('open');
+            } else {
+                section.style.display = 'none';
+                chevron.classList.remove('open');
+            }
+        }
 
         // Event listeners
         fileInput.addEventListener('change', handleFileUpload);
+        tabInfo.addEventListener('click', () => switchTab('info'));
         tabAnalyse.addEventListener('click', () => switchTab('analyse'));
         tabUniversum.addEventListener('click', () => switchTab('universum'));
-        generateChartButton.addEventListener('click', handleGenerateChartClick);
-        cancelChartButton.addEventListener('click', closeChartModal);
+        
+        function addChartMetricListeners() {
+            ['metric-bereik', 'metric-gem_bereik_pct', 'metric-selectiviteit'].forEach(id => {
+                document.getElementById(id).addEventListener('change', () => {
+                    if (currentTitlesInTable.length > 0) {
+                        updateAnalyseChart();
+                    }
+                });
+            });
+        }
         
         function addFilterEventListeners() {
             [
@@ -289,7 +381,7 @@
                 limitInput, 
                 ...document.querySelectorAll('input[name="typeFilter"]'), 
                 ...document.querySelectorAll('input[name="sortOrder"]'),
-                document.getElementById('showAggregatenSwitch') // <-- DIT BLIJFT WERKEN
+                document.getElementById('showAggregatenSwitch')
             ].forEach(el => {
                 el.addEventListener('change', () => updateResultsDisplay());
             });
@@ -301,18 +393,36 @@
         }
 
         function switchTab(activeTab) {
-            if (activeTab === 'analyse') {
+            if (activeTab === 'info') {
+                tabInfo.classList.add('tab-active');
+                tabAnalyse.classList.remove('tab-active');
+                tabUniversum.classList.remove('tab-active');
+                panelInfo.classList.remove('hidden');
+                panelAnalyse.classList.add('hidden');
+                panelUniversum.classList.add('hidden');
+                analysisFilters.classList.add('hidden');
+                doelgroepgrootteFilters.style.display = 'none';
+            } else if (activeTab === 'analyse') {
+                tabInfo.classList.remove('tab-active');
                 tabAnalyse.classList.add('tab-active');
                 tabUniversum.classList.remove('tab-active');
+                panelInfo.classList.add('hidden');
                 panelAnalyse.classList.remove('hidden');
                 panelUniversum.classList.add('hidden');
                 analysisFilters.classList.remove('hidden');
+                doelgroepgrootteFilters.style.display = 'none';
             } else {
+                tabInfo.classList.remove('tab-active');
                 tabUniversum.classList.add('tab-active');
                 tabAnalyse.classList.remove('tab-active');
+                panelInfo.classList.add('hidden');
                 panelUniversum.classList.remove('hidden');
                 panelAnalyse.classList.add('hidden');
                 analysisFilters.classList.add('hidden');
+                doelgroepgrootteFilters.style.display = 'block';
+                if (parsedData.universumData.length > 0 && !currentUniversumChart) {
+                    generateUniversumChart();
+                }
             }
         }
 
@@ -325,18 +435,22 @@
         }
 
         function parseHTML(htmlContent) {
+            
             resultsContainer.innerHTML = '';
             chartContainer.innerHTML = '';
             universumContainer.innerHTML = '';
             universumChartContainer.innerHTML = '';
+            panelInfo.style.display = 'none'; // Hide info panel initially until tab is clicked
             welcomeMessage.style.display = 'block';
+            currentAnalyseChart = null;
+            currentUniversumChart = null;
+            selectedDoelgroepen.clear();
 
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlContent, 'text/html');
             const tables = doc.querySelectorAll('table');
 
             if (tables.length < 2) {
-                // Use a custom modal or inline message instead of alert()
                 console.error('Ongeldig HTML-bestand. Verwachte tabellen niet gevonden.');
                 resultsContainer.innerHTML = `<p class="text-red-500">Uploaden mislukt: Ongeldig HTML-bestand. De verwachte tabellen zijn niet gevonden.</p>`;
                 welcomeMessage.style.display = 'none';
@@ -373,10 +487,7 @@
                     continue; 
                 }
 
-                // --- GEWIJZIGD ---
-                // Sla titels niet over, maar markeer ze als aggregaat
                 const isAggregaat = EXCLUDED_TITLES.includes(titleName);
-                // if (EXCLUDED_TITLES.includes(titleName)) continue; // <-- VERWIJDERD
 
                 let type = 'unknown';
                 const lowerTitle = titleName.toLowerCase();
@@ -388,7 +499,7 @@
                     titel: titleName, 
                     type: type, 
                     data: {},
-                    isAggregaat: isAggregaat // <-- TOEGEVOEGD
+                    isAggregaat: isAggregaat
                 };
                 let cellIndex = 1;
                 for (let j = 0; j < targetGroups.length; j++) {
@@ -422,13 +533,14 @@
 
             // --- Update UI ---
             populateTargetGroups();
-            // --- GEWIJZIGD: aggregatenFilterContainer toegevoegd ---
-            [targetGroupContainer, typeFilterContainer, sortOptionsContainer, aggregatenFilterContainer].forEach(c => c.style.display = 'block');
+            populateDoelgroepCheckboxes();
+            [targetGroupContainer, typeFilterContainer, sortOptionsContainer, aggregatenFilterContainer, chartOptionsContainer].forEach(c => c.style.display = 'block');
             addFilterEventListeners();
+            addChartMetricListeners();
             targetGroupSelect.addEventListener('change', handleTargetGroupSelection);
             welcomeMessage.style.display = 'none';
             tabsContainer.classList.remove('hidden');
-            switchTab('universum');
+            switchTab('info');
             displayUniversumData();
         }
 
@@ -447,10 +559,59 @@
             });
         }
         
+        function populateDoelgroepCheckboxes() {
+            doelgroepCheckboxes.innerHTML = '';
+            
+            // Initialize all doelgroepen as selected (checked by default)
+            selectedDoelgroepen.clear();
+            parsedData.universumData.forEach(item => {
+                selectedDoelgroepen.add(item.doelgroep);
+            });
+            
+            parsedData.universumData.forEach(item => {
+                const checkboxWrapper = document.createElement('div');
+                checkboxWrapper.className = 'flex items-center';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `doelgroep-${item.doelgroep.replace(/\s+/g, '-')}`;
+                checkbox.value = item.doelgroep;
+                checkbox.checked = true; // Default to checked
+                checkbox.className = 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500';
+                checkbox.addEventListener('change', handleDoelgroepFilterChange);
+                
+                const label = document.createElement('label');
+                label.htmlFor = checkbox.id;
+                label.className = 'ml-2 block text-sm text-gray-900';
+                label.textContent = item.doelgroep;
+                
+                checkboxWrapper.appendChild(checkbox);
+                checkboxWrapper.appendChild(label);
+                doelgroepCheckboxes.appendChild(checkboxWrapper);
+            });
+        }
+
+        function handleDoelgroepFilterChange(event) {
+            const doelgroep = event.target.value;
+            
+            if (event.target.checked) {
+                selectedDoelgroepen.add(doelgroep);
+            } else {
+                selectedDoelgroepen.delete(doelgroep);
+            }
+            
+            displayUniversumData();
+            // Regenerate chart with filtered data
+            if (currentUniversumChart) {
+                generateUniversumChart();
+            }
+        }
+        
         function updateResultsDisplay(isAddingOrRemoving = false) {
             const selectedGroup = targetGroupSelect.value;
             if (!selectedGroup) {
                 resultsContainer.innerHTML = '<p class="text-gray-500">Selecteer een doelgroep om data te zien.</p>';
+                chartContainer.innerHTML = '';
                 return;
             }
 
@@ -461,19 +622,15 @@
                 const limit = parseInt(document.getElementById('limitInput').value, 10) || 10;
                 const ascending = sortOrder === 'asc';
 
-                // --- GEWIJZIGD: Lees de nieuwe 'aggregaten' switch ---
                 const showAggregaten = document.getElementById('showAggregatenSwitch').checked;
 
                 let filteredTitles = parsedData.titles.filter(title => {
                     const hasData = title.data[selectedGroup]?.[sortMetric] > 0;
                     const matchesType = (selectedType === 'all' || title.type === selectedType);
-                    
-                    // Nieuwe filterconditie voor aggregaten
                     const matchesAggregaatFilter = showAggregaten || !title.isAggregaat;
                     
                     return hasData && matchesType && matchesAggregaatFilter;
                 });
-                // --- EINDE WIJZIGING ---
 
                 filteredTitles.sort((a, b) => {
                     const aValue = a.data[selectedGroup][sortMetric];
@@ -485,6 +642,7 @@
             }
             
             generateResultsHtml(currentTitlesInTable, selectedGroup);
+            updateAnalyseChart();
         }
 
         function generateResultsHtml(titles, targetGroup) {
@@ -523,7 +681,6 @@
 
         if (!titles || titles.length === 0) {
             resultsContainer.innerHTML = headerHtml + summaryHtml + `<p>Geen resultaten gevonden voor de geselecteerde filters.</p>`;
-            chartContainer.innerHTML = '';
             return;
         }
 
@@ -542,7 +699,6 @@
                     <tbody class="bg-white divide-y divide-gray-200">`;
         titles.forEach(title => {
             const data = title.data[targetGroup];
-            // <CHANGE> Voeg 'row-aggregate' klasse toe voor aggregaatrijnen
             const rowClass = title.isAggregaat ? 'row-aggregate' : '';
             tableHtml += `
                 <tr class="${rowClass}">
@@ -570,16 +726,14 @@
                     </div>
                 </div>`;
 
-            const chartButtonHtml = `<div class="mt-4"><button onclick="openChartModal()" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">📊 Genereer Grafiek</button></div>`;
-
-            resultsContainer.innerHTML = headerHtml + summaryHtml + tableHtml + searchBarHtml + chartButtonHtml;
+            resultsContainer.innerHTML = headerHtml + summaryHtml + tableHtml + searchBarHtml;
 
             // Re-attach listeners for the new search bar
             const tableSearchInput = document.getElementById('tableSearchInput');
             tableSearchInput.addEventListener('input', handleSearchInput);
             tableSearchInput.addEventListener('blur', () => setTimeout(() => document.getElementById('tableSearchResults').classList.add('hidden'), 200));
         }
-        
+
         function formatNumber(num) {
             return num.toLocaleString('nl-NL');
         }
@@ -589,6 +743,10 @@
                 universumContainer.innerHTML = '<p class="text-gray-500">Geen data over doelgroepgrootte gevonden.</p>';
                 return;
             }
+
+            const filteredData = parsedData.universumData.filter(item => 
+                selectedDoelgroepen.has(item.doelgroep)
+            );
 
             const tableId = `universum-table-${Date.now()}`;
             let headerHtml = `
@@ -612,7 +770,7 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">`;
 
-            parsedData.universumData.forEach(item => {
+            filteredData.forEach(item => {
                 const dpgReach = parsedData.dpgReachData[item.doelgroep] || 0;
                 const share = item.universum > 0 ? (dpgReach / item.universum) * 100 : 0;
                 tableHtml += `
@@ -625,9 +783,36 @@
             });
 
             tableHtml += `</tbody></table></div>`;
-            const chartButtonHtml = `<div class="mt-4"><button onclick="generateUniversumChart()" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">📊 Genereer Grafiek</button></div>`;
             
-            universumContainer.innerHTML = headerHtml + tableHtml + chartButtonHtml;
+            universumContainer.innerHTML = headerHtml + tableHtml;
+        }
+
+        function updateAnalyseChart() {
+            if (!currentTitlesInTable || currentTitlesInTable.length === 0) {
+                chartContainer.innerHTML = '';
+                return;
+            }
+
+            const selectedMetrics = [];
+            if (document.getElementById('metric-bereik').checked) selectedMetrics.push('bereik');
+            if (document.getElementById('metric-gem_bereik_pct').checked) selectedMetrics.push('gem_bereik_pct');
+            if (document.getElementById('metric-selectiviteit').checked) selectedMetrics.push('selectiviteit');
+
+            if (selectedMetrics.length === 0) {
+                // Default to sort metric if nothing selected
+                const sortMetric = sortMetricSelect.value;
+                selectedMetrics.push(sortMetric);
+                document.getElementById(`metric-${sortMetric}`).checked = true;
+            }
+
+            const chartData = {
+                titles: currentTitlesInTable,
+                targetGroup: targetGroupSelect.value,
+                metric: sortMetricSelect.value,
+                typeFilter: document.querySelector('input[name="typeFilter"]:checked').value
+            };
+
+            generateChart(chartData, selectedMetrics);
         }
 
         function generateUniversumChart() {
@@ -645,23 +830,31 @@
             chartWrapper.appendChild(canvas);
             universumChartContainer.appendChild(chartWrapper);
 
-            const labels = parsedData.universumData.map(d => d.doelgroep);
+            const filteredData = parsedData.universumData.filter(item => 
+                selectedDoelgroepen.has(item.doelgroep)
+            );
 
-            new Chart(canvas, {
+            const labels = filteredData.map(d => d.doelgroep);
+
+            if (currentUniversumChart) {
+                currentUniversumChart.destroy();
+            }
+
+            currentUniversumChart = new Chart(canvas, {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [
                         {
                             label: 'DPG Media Merkbereik',
-                            data: parsedData.universumData.map(d => parsedData.dpgReachData[d.doelgroep] || 0),
+                            data: filteredData.map(d => parsedData.dpgReachData[d.doelgroep] || 0),
                             backgroundColor: 'rgba(209, 52, 121, 0.8)',
                             borderColor: 'rgba(209, 52, 121, 1)',
                             borderWidth: 1
                         },
                          {
                             label: 'Resterende doelgroepgrootte',
-                            data: parsedData.universumData.map(d => {
+                            data: filteredData.map(d => {
                                 const reach = parsedData.dpgReachData[d.doelgroep] || 0;
                                 return d.universum > reach ? d.universum - reach : 0;
                             }),
@@ -685,7 +878,7 @@
                         datalabels: {
                             display: true, color: 'white', anchor: 'center', align: 'center',
                             formatter: (value, context) => {
-                                if (context.dataset.label === 'DPG Media Bereik') {
+                                if (context.dataset.label === 'DPG Media Merkbereik') {
                                     return value > 0 ? formatNumber(value) : '';
                                 }
                                 return '';
@@ -710,60 +903,18 @@
             copyBtn.onclick = () => copyChartToClipboard(canvasId, copyBtn);
             universumChartContainer.appendChild(copyBtn);
         }
-        
-        function openChartModal() {
-            currentTitlesInTable = currentTitlesInTable.filter(t => t);
-            if (!currentTitlesInTable || currentTitlesInTable.length === 0) {
-                 // Use a custom modal or inline message instead of alert()
-                 console.warn('Geen data in de tabel om een grafiek van te maken.');
-                 return;
-            };
-
-            const sortMetric = document.getElementById('sortMetricSelect').value;
-            document.getElementById('metric-bereik').checked = sortMetric === 'bereik';
-            document.getElementById('metric-gem_bereik_pct').checked = sortMetric === 'gem_bereik_pct';
-            document.getElementById('metric-selectiviteit').checked = sortMetric === 'selectiviteit';
-            chartOptionsModal.classList.remove('hidden');
-        }
-
-        function closeChartModal() {
-            chartOptionsModal.classList.add('hidden');
-        }
-        
-        function handleGenerateChartClick() {
-            const selectedMetrics = [];
-            if (document.getElementById('metric-bereik').checked) selectedMetrics.push('bereik');
-            if (document.getElementById('metric-gem_bereik_pct').checked) selectedMetrics.push('gem_bereik_pct');
-            if (document.getElementById('metric-selectiviteit').checked) selectedMetrics.push('selectiviteit');
-
-            const chartData = {
-                titles: currentTitlesInTable.filter(t => t),
-                targetGroup: targetGroupSelect.value,
-                metric: sortMetricSelect.value,
-                typeFilter: document.querySelector('input[name="typeFilter"]:checked').value
-            }
-
-            if (selectedMetrics.length > 0 && chartData.titles.length > 0) {
-                generateChart(chartData, selectedMetrics);
-                closeChartModal();
-            } else {
-                // Use a custom modal or inline message instead of alert()
-                console.warn('Selecteer ten minste één waarde en zorg dat er data in de tabel staat.');
-            }
-        }
 
         function copyTableToClipboard(tableId, buttonElement) {
+            
             const table = document.getElementById(tableId);
             if (!table) return;
             const originalText = buttonElement.textContent;
             
-            // Fallback for document.execCommand
             const copyUsingExecCommand = (htmlContent) => {
                 const textarea = document.createElement('textarea');
-                textarea.innerHTML = htmlContent; // Use innerHTML to keep table structure
+                textarea.innerHTML = htmlContent;
                 document.body.appendChild(textarea);
                 
-                // Create a range to select the text
                 const range = document.createRange();
                 range.selectNode(textarea);
                 const selection = window.getSelection();
@@ -798,6 +949,7 @@
         }
 
         function copyChartToClipboard(canvasId, buttonElement) {
+            
             const canvas = document.getElementById(canvasId);
             if (!canvas) return;
             const originalText = buttonElement.textContent;
@@ -879,7 +1031,11 @@
                 delete chartScales.yOther;
             }
 
-            new Chart(canvas, {
+            if (currentAnalyseChart) {
+                currentAnalyseChart.destroy();
+            }
+
+            currentAnalyseChart = new Chart(canvas, {
                 type: 'bar', 
                 data: { labels: labels, datasets: datasets },
                 options: {
@@ -911,11 +1067,10 @@
             copyBtn.className = 'mt-4 px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300';
             copyBtn.onclick = () => copyChartToClipboard(canvasId, copyBtn);
             chartContainer.appendChild(copyBtn);
-            
-            canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
         function handleSearchInput(e) {
+            
             const searchResultsList = document.getElementById('tableSearchResults');
             const query = e.target.value.toLowerCase();
             if (query.length < 2) {
