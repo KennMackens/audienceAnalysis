@@ -56,7 +56,8 @@
 <body class="bg-gray-50">
     <div class="min-h-screen flex">
          <!-- Left Panel - Controls -->
-        <div class="w-96 bg-white border-r border-gray-200 p-6 flex flex-col overflow-y-auto">
+        <!-- Added sticky positioning with proper height handling -->
+        <div class="w-96 bg-white border-r border-gray-200 p-6 flex flex-col overflow-y-auto sticky top-0 h-screen">
             <h1 class="text-2xl font-bold text-gray-900 mb-6">Doelgroepanalyse Assistent</h1>
             
              <!-- File Upload -->
@@ -216,11 +217,13 @@
          <!-- Right Panel - Results -->
         <div class="flex-1 p-6 overflow-y-auto">
             <div id="welcomeMessage" class="text-center py-20">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">Welkom bij de Doelgroepanalyse Assistent</h3>
-                <p class="mt-1 text-sm text-gray-500">Upload een HTML-bestand om te beginnen</p>
+                <!-- Updated welcome message with actual app description -->
+                <h3 class="mt-2 text-2xl font-bold text-gray-900">Welkom bij de Sales Argumentatie Assistent!</h3>
+                <div class="mt-4 text-left max-w-xl mx-auto text-gray-700 space-y-3">
+                    <p>Met deze assistent kun je snel en eenvoudig een doelgroepanalyse, die je ontvangt via Sales Argumentatie, verwerken en per doelgroep geschikte titels selecteren op basis van bereik en/of selectiviteit.</p>
+                    <p>Hierbij wordt direct een grafiek gegenereerd voor een visuele weergave van de resultaten.</p>
+                    <p>Gebruik hiervoor het HTML-bestand dat je van Sales Argumentatie ontvangt, naast de standaard doelgroepanalyse in Google spreadsheets.</p>
+                </div>
             </div>
 
             <div id="tabsContainer" class="hidden">
@@ -236,38 +239,10 @@
                 <!-- Added new Bron & Uitleg panel -->
                 <div id="panel-info" class="py-6">
                     <div class="space-y-6">
-                        <!-- Klant Card -->
-                        <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Klant</h3>
-                            <p class="text-gray-700">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                        </div>
-
-                        <!-- Bron Card -->
-                        <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Bron</h3>
-                            <p class="text-gray-700">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p>
-                        </div>
-
-                        <!-- Uitleg Textarea -->
                         <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
                             <h3 class="text-lg font-semibold text-gray-900 mb-4">Uitleg</h3>
-                            <textarea 
-                                id="explanationText" 
-                                rows="12" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                                placeholder="Voer hier uw uitleg in..."
-                            >Lorem Ipsum: De Standaard Tekst
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-
-Waarom Lorem Ipsum?
-Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-
-Belangrijke Overwegingen
-Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.
-
-Conclusie
-Totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</textarea>
+                            <h2 class="text-base font-semibold text-gray-800 mb-2">Lorem Ipsum</h2>
+                            <p class="text-gray-700 mb-4">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
                         </div>
                     </div>
                 </div>
